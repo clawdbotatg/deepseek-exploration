@@ -1,0 +1,13 @@
+# Never commit model weights — they're huge and live outside the repo.
+*.gguf
+*.bin
+*.safetensors
+models/
+
+# Local scratch / logs
+*.log
+out/
+scratch/
+
+# OS noise
+.DS_Store
