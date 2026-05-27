@@ -68,8 +68,44 @@ The plain conversation loop. Type messages, get replies, `Ctrl-C` or `/exit` to 
 ./chat.sh -sys "you are a helpful pair programmer"   # extra flags pass through
 ```
 
+## Giving it web access
+
+The model can't reach the network on its own, so we give it pages to read.
+There are two levels:
+
+**Level 1 — the harness fetches, the model reasons (works today).**
+`fetch.py` does the HTTP request and cleans the response into compact text;
+`web-summarize.sh` feeds that to the model.
+
+```bash
+# fetch.py: the reusable "web request" primitive (HTML->text, NDJSON->"speaker: text",
+# JSON pretty-print, size cap). Diagnostics go to stderr, clean text to stdout.
+./fetch.py https://example.com
+
+# web-summarize.sh: fetch a URL + summarize it in one shot
+./web-summarize.sh https://example.com
+./web-summarize.sh <url> "list the key decisions with timestamps"
+```
+
+Fetched pages are big, so `web-summarize.sh` defaults to `CTX_SIZE=16384`
+(override it; bigger context = slower generation). Raise `N_PREDICT` if the
+answer gets cut off.
+
+Verified example — summarizing a 146 KB live-stream transcript (NDJSON, ~15K
+tokens after cleaning): prompt eval ~85 tok/s (~3 min), generation ~7 tok/s.
+The model correctly reconstructed the session (host, guest, multi-sig wallet
+demo, live feature deploys) from the raw transcript alone.
+
+**Level 2 — the model decides to fetch (agentic, not built yet).**
+Run `llama-server --jinja` (binary is present) for an OpenAI-compatible API
+with tool-calling, then a small client advertises a `fetch_url` tool and runs
+the request when the model asks for it. This is the "real" web ability; ask if
+you want it wired up.
+
 ## Files
 
 - `config.sh` — shared paths/settings, sourced by the scripts (env-overridable).
 - `ask.sh` — non-interactive single prompt → reply.
 - `chat.sh` — interactive conversation mode.
+- `fetch.py` — fetch a URL → clean, model-friendly text (the web-request primitive).
+- `web-summarize.sh` — fetch a URL and have the model summarize it.
