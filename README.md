@@ -96,11 +96,24 @@ tokens after cleaning): prompt eval ~85 tok/s (~3 min), generation ~7 tok/s.
 The model correctly reconstructed the session (host, guest, multi-sig wallet
 demo, live feature deploys) from the raw transcript alone.
 
-**Level 2 — the model decides to fetch (agentic, not built yet).**
-Run `llama-server --jinja` (binary is present) for an OpenAI-compatible API
-with tool-calling, then a small client advertises a `fetch_url` tool and runs
-the request when the model asks for it. This is the "real" web ability; ask if
-you want it wired up.
+**Level 2 — the model decides to fetch (agentic).**
+`server.sh` runs `llama-server --jinja` (OpenAI-compatible API with
+tool-calling); `agent.py` advertises a `fetch_url` tool and runs the loop, so
+the *model itself* chooses when to make the request.
+
+```bash
+# terminal 1: load the model + serve (blocks; ~1 min to load)
+./server.sh
+
+# terminal 2: give it a task; it decides whether/what to fetch
+./agent.py "Fetch https://example.com and tell me what it's for."
+./agent.py "Summarize the transcript at <url> and list the key moments."
+```
+
+The model's thinking and each tool call print to stderr (the trace), the final
+answer to stdout. Verified: asked about a page, the model emitted
+`fetch_url({"url": ...})` on its own, `fetch.py` ran the request, and it
+answered from the result.
 
 ## Files
 
@@ -108,4 +121,6 @@ you want it wired up.
 - `ask.sh` — non-interactive single prompt → reply.
 - `chat.sh` — interactive conversation mode.
 - `fetch.py` — fetch a URL → clean, model-friendly text (the web-request primitive).
-- `web-summarize.sh` — fetch a URL and have the model summarize it.
+- `web-summarize.sh` — fetch a URL and have the model summarize it (Level 1).
+- `server.sh` — run `llama-server` with tool-calling (`--jinja`) for the agent.
+- `agent.py` — agentic client: gives the model a `fetch_url` tool it calls itself (Level 2).

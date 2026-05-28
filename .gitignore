@@ -9,5 +9,9 @@ models/
 out/
 scratch/
 
+# Python
+__pycache__/
+*.pyc
+
 # OS noise
 .DS_Store
